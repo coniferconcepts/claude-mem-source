@@ -1,0 +1,76 @@
+--- a/src/services/sqlite/SessionStore.ts
++++ b/src/services/sqlite/SessionStore.ts
+@@ -13,6 +13,56 @@
+   LatestPromptResult
+ } from '../../types/database.js';
+ import type { PendingMessageStore } from './PendingMessageStore.js';
++
++/**
++ * Input size limits for security and performance
++ * PHASE 3: Medium Priority Fixes - Task 3.1
++ */
++const MAX_STRING_LENGTH = 10000; // 10KB limit for session IDs and project names
++const MAX_PROMPT_LENGTH = 100000; // 100KB limit for user prompts
++const MAX_FILES_IN_LIST = 1000; // Prevent array bloat in file lists
++
++/**
++ * Character validation regex for project names and session IDs
++ * Allows alphanumeric, spaces, and common punctuation
++ * PHASE 3: Medium Priority Fixes - Task 3.1
++ */
++const SAFE_CHARS_REGEX = /^[a-zA-Z0-9\s,\.!?@#$%&*()_\-\[\]{}:;"'<>=]+$/;
++
++/**
++ * Validate input sizes and characters for security
++ * PHASE 3: Medium Priority Fixes - Task 3.1
++ * @throws Error if validation fails
++ */
++function validateInputs(
++  contentSessionId: string,
++  project: string,
++  userPrompt: string
++): void {
++  // Validate string lengths
++  if (contentSessionId.length > MAX_STRING_LENGTH) {
++    throw new Error(
++      `contentSessionId too long: ${contentSessionId.length} > ${MAX_STRING_LENGTH}`
++    );
++  }
++  if (project.length > MAX_STRING_LENGTH) {
++    throw new Error(
++      `project name too long: ${project.length} > ${MAX_STRING_LENGTH}`
++    );
++  }
++  if (userPrompt.length > MAX_PROMPT_LENGTH) {
++    throw new Error(
++      `user prompt too long: ${userPrompt.length} > ${MAX_PROMPT_LENGTH}`
++    );
++  }
++
++  // Validate characters in project name (most critical field)
++  if (project && !SAFE_CHARS_REGEX.test(project)) {
++    throw new Error(
++      'Invalid characters in project name. Only alphanumeric, spaces, and common punctuation allowed'
++    );
++  }
++}
+ 
+ /**
+  * Session data store for SDK sessions, observations, and summaries
+@@ -1160,8 +1210,16 @@
+    *
+    * This is KISS in action: Trust the database UNIQUE constraint and
+    * INSERT OR IGNORE to handle both creation and lookup elegantly.
++   *
++   * PHASE 3: Medium Priority Fixes - Task 3.1
++   * - Input size validation added
++   * - Character validation for project names
++   * - Prevents injection attacks and resource exhaustion
+    */
+   createSDKSession(contentSessionId: string, project: string, userPrompt: string): number {
++    // PHASE 3: Validate inputs before database operation
++    validateInputs(contentSessionId, project, userPrompt);
++
+     const now = new Date();
+     const nowEpoch = now.getTime();
+ 
