@@ -24,10 +24,11 @@ const MAX_FILES_IN_LIST = 1000; // Prevent array bloat in file lists
 
 /**
  * Character validation regex for project names and session IDs
- * Allows alphanumeric, spaces, and common punctuation
+ * Allows alphanumeric, spaces (only), hyphens, underscores, and common safe characters
+ * Blocks: ; ' " \n \r \t and other potentially dangerous characters
  * PHASE 3: Medium Priority Fixes - Task 3.1
  */
-const SAFE_CHARS_REGEX = /^[a-zA-Z0-9\s,\.!?@#$%&*()_\-\[\]{}:;"'<>=]+$/;
+const SAFE_CHARS_REGEX = /^[a-zA-Z0-9 \-_\.\/\(\)]+$/;
 
 /**
  * Validate input sizes and characters for security
