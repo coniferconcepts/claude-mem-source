@@ -20,15 +20,15 @@ import type { PendingMessageStore } from './PendingMessageStore.js';
  */
 const MAX_STRING_LENGTH = 10000; // 10KB limit for session IDs and project names
 const MAX_PROMPT_LENGTH = 100000; // 100KB limit for user prompts
-const MAX_FILES_IN_LIST = 1000; // Prevent array bloat in file lists
 
 /**
  * Character validation regex for project names and session IDs
- * Allows alphanumeric, spaces (only), hyphens, underscores, and common safe characters
- * Blocks: ; ' " \n \r \t and other potentially dangerous characters
+ * Allows alphanumeric, spaces, hyphens, underscores, dots, and parentheses
+ * Blocks: ; ' " / \ \n \r \t and other potentially dangerous characters
+ * Note: Forward slash removed to prevent path traversal attacks
  * PHASE 3: Medium Priority Fixes - Task 3.1
  */
-const SAFE_CHARS_REGEX = /^[a-zA-Z0-9 \-_\.\/\(\)]+$/;
+const SAFE_CHARS_REGEX = /^[a-zA-Z0-9 \-_\.\(\)]+$/;
 
 /**
  * Validate input sizes and characters for security
@@ -40,6 +40,17 @@ function validateInputs(
   project: string,
   userPrompt: string
 ): void {
+  // Null/undefined safety checks
+  if (contentSessionId == null) {
+    throw new Error('contentSessionId is required and cannot be null or undefined');
+  }
+  if (project == null) {
+    throw new Error('project is required and cannot be null or undefined');
+  }
+  if (userPrompt == null) {
+    throw new Error('userPrompt is required and cannot be null or undefined');
+  }
+
   // Validate string lengths
   if (contentSessionId.length > MAX_STRING_LENGTH) {
     throw new Error(
@@ -57,10 +68,17 @@ function validateInputs(
     );
   }
 
-  // Validate characters in project name (most critical field)
+  // Validate characters in project name (most critical field for file system operations)
   if (project && !SAFE_CHARS_REGEX.test(project)) {
     throw new Error(
-      'Invalid characters in project name. Only alphanumeric, spaces, and common punctuation allowed'
+      'Invalid characters in project name. Only alphanumeric, spaces, hyphens, underscores, dots, and parentheses allowed'
+    );
+  }
+
+  // Validate characters in contentSessionId (used in database queries)
+  if (contentSessionId && !SAFE_CHARS_REGEX.test(contentSessionId)) {
+    throw new Error(
+      'Invalid characters in session ID. Only alphanumeric, spaces, hyphens, underscores, dots, and parentheses allowed'
     );
   }
 }
